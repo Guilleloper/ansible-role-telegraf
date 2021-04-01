@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegraf agent
+Documentation=https://github.com/influxdata/telegraf
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/telegraf
+User=telegraf
+ExecStart={{ telegraf__path_bin }}/telegraf -config {{ telegraf__path_config }}/telegraf.conf -config-directory {{ telegraf__path_config }}/telegraf.d $TELEGRAF_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

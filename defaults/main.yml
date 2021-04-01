@@ -1,0 +1,52 @@
+---
+# Version
+telegraf__version: "1.18.0"
+
+# System user and group
+telegraf__group_name: "telegraf"
+telegraf__group_id: 10003
+telegraf__user_name: "telegraf"
+telegraf__user_id: 10003
+telegraf__user_home: "/home/telegraf"
+telegraf__user_shell: "/usr/sbin/nologin"
+
+# Locations
+telegraf__path_bin: "/usr/bin" 
+telegraf__path_config: "/etc/telegraf"
+telegraf__path_log: "/var/log/telegraf"
+telegraf__path_tmp: "/var/tmp" 
+
+# Config
+telegraf__interval: "60s"
+telegraf__inputs: []
+# ---
+# List of dictionaries. Each element of the list will be a config file in telegraf.d config dir
+# For example:
+#   - name: example_1
+#     content: |
+#       [[inputs.cpu]]
+#         percpu = true
+#         totalcpu = true
+#         collect_cpu_time = false
+#         report_active = false
+#   - name: example_2
+#     content: |
+#       [[inputs.disk]]
+#         ignore_fs = ["tmpfs", "devtmpfs", "devfs"]
+# ---
+telegraf__outputs: []
+# ---
+# List of dictionaries. Each element of the list will be a config file in telegraf.d config dir
+# For example:
+#   - name: example_1
+#     content: |
+#       [[outputs.influxdb]]
+#         database = "example_1"
+#         urls = [ "http://example_1:8086" ]
+#   - name: example_2
+#     content: |
+#       [[outputs.influxdb]]
+#         database = "example_2"
+#         urls = [ "http://example_2:8086" ]
+# ---
+...

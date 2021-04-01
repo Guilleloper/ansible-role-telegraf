@@ -1,0 +1,118 @@
+---
+- name: System group
+  group:
+    name: "{{ telegraf__group_name }}"
+    gid: "{{ telegraf__group_id }}"
+
+- name: System user
+  user:
+    name: "{{ telegraf__user_name }}"
+    uid: "{{ telegraf__user_id }}"
+    group: "{{ telegraf__group_name }}"
+    groups: video
+    home: "{{ telegraf__user_home }}"
+    shell: "{{ telegraf__user_shell }}"
+
+- name: Folders
+  file:
+    state: directory
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: 0755
+  when:
+    - item.path != "/tmp"
+    - item.path != "/var/tmp"
+  loop:
+    - { path: "{{ telegraf__path_bin }}", owner: "root", group: "root" }
+    - { path: "{{ telegraf__path_config }}", owner: "{{ telegraf__user_name }}", group: "{{ telegraf__group_name }}" }
+    - { path: "{{ telegraf__path_config }}/telegraf.d", owner: "{{ telegraf__user_name }}", group: "{{ telegraf__group_name }}" }
+    - { path: "{{ telegraf__path_log }}", owner: "{{ telegraf__user_name }}", group: "{{ telegraf__group_name }}" }
+    - { path: "{{ telegraf__path_tmp }}", owner: "{{ telegraf__user_name }}", group: "{{ telegraf__group_name }}" }
+
+- name: Set package name
+  set_fact:
+    package_name: "telegraf-{{ telegraf__version }}"
+    package_file: "telegraf-{{ telegraf__version }}_linux_armhf.tar.gz"
+
+- name: Download package
+  shell: |
+    cd {{ telegraf__path_tmp }}
+    wget https://dl.influxdata.com/telegraf/releases/{{ package_file }}
+    tar xvfz {{ package_file }}
+  check_mode: no
+  changed_when: False
+
+- name: Binary file
+  copy:
+    src: "{{ telegraf__path_tmp }}/{{ package_name }}/usr/bin/telegraf" 
+    remote_src: yes
+    dest: "{{ telegraf__path_bin }}/telegraf"
+    owner: root
+    group: root
+    mode: 0755
+  notify:
+    - Restart Systemd service
+
+- name: Delete the downloaded package
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ telegraf__path_tmp }}/{{ package_file }}"
+    - "{{ telegraf__path_tmp }}/{{ package_name }}"
+  check_mode: no
+  changed_when: False
+
+- name: Config file
+  template:
+    src: telegraf.conf.j2
+    dest: "{{ telegraf__path_config }}/telegraf.conf"
+    owner: "{{ telegraf__user_name }}"
+    group: "{{ telegraf__group_name }}"
+    mode: 0644
+  notify:
+    - Restart Systemd service
+
+- name: Input files
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ telegraf__path_config }}/telegraf.d/{{ item.name }}.conf"
+    owner: "{{ telegraf__user_name }}"
+    group: "{{ telegraf__group_name }}"
+    mode: 0644
+  with_items: "{{ telegraf__inputs }}"
+  when: telegraf__inputs | length>0
+  notify:
+    - Restart Systemd service
+
+- name: Output files
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ telegraf__path_config }}/telegraf.d/{{ item.name }}.conf"
+    owner: "{{ telegraf__user_name }}"
+    group: "{{ telegraf__group_name }}"
+    mode: 0644
+  with_items: "{{ telegraf__outputs }}"
+  when: telegraf__outputs | length>0
+  notify:
+    - Restart Systemd service
+
+- name: Logrotate file
+  template: 
+    src: telegraf.logrotate.j2
+    dest: /etc/logrotate.d/telegraf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Systemd service file
+  template:
+    src: telegraf.service.j2
+    dest: /lib/systemd/system/telegraf.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Restart Systemd service
+...
